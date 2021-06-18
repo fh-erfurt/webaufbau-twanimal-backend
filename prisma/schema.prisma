@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["selectRelationCount"]
 }
 
 datasource db {
@@ -8,14 +9,64 @@ datasource db {
 }
 
 model User {
-  id                Int      @id @default(autoincrement())
-  email             String   @unique @db.VarChar(200)
-  username          String   @unique @db.VarChar(40)
-  displayName       String   @db.VarChar(120)
-  password          String   @db.VarChar(250)
-  profilePictureUrl String?  @db.VarChar(100)
-  description       String?  @default("") @db.VarChar(280)
-  createdAt         DateTime @default(now()) @db.DateTime(0)
+  id                Int          @id @default(autoincrement())
+  email             String       @unique @db.VarChar(200)
+  username          String       @unique @db.VarChar(40)
+  displayName       String       @db.VarChar(120)
+  password          String       @db.VarChar(250)
+  profilePictureUrl String?      @db.VarChar(100)
+  description       String?      @default("") @db.VarChar(280)
+  createdAt         DateTime     @default(now()) @db.DateTime(0)
+  type              String       @db.VarChar(50)
+  apiToken          String       @unique @db.VarChar(36)
+  post              Post[]       @relation("postToUser")
+  postLike          PostLike[]   @relation("postLikeToUser")
+  followFrom        UserFollow[] @relation("userFollowFrom")
+  followTo          UserFollow[] @relation("userFollowTo")
 
   @@map("user")
+}
+
+model UserFollow {
+  followFrom     Int
+  followTo       Int
+  createdAt      DateTime @default(now()) @db.DateTime(0)
+  userFollowFrom User     @relation("userFollowFrom", fields: [followFrom], references: [id])
+  userFollowTo   User     @relation("userFollowTo", fields: [followTo], references: [id])
+
+  @@id([followFrom, followTo])
+  @@index([followTo], name: "followTo")
+  @@map("user_follow")
+}
+
+model Post {
+  id           Int         @id @default(autoincrement())
+  createdBy    Int
+  createdAt    DateTime    @default(now()) @db.DateTime(0)
+  text         String      @db.VarChar(400)
+  attachements Json
+  replyTo      Int?
+  repostOf     Int?
+  user         User        @relation("postToUser", fields: [createdBy], references: [id])
+  replyToPost  Post?       @relation("postToPostInReplyTo", fields: [replyTo], references: [id])
+  repostOfPost Post?       @relation("postToPostRepostOf", fields: [repostOf], references: [id])
+  replies      Post[]      @relation("postToPostInReplyTo")
+  reposts      Post[]      @relation("postToPostRepostOf")
+  postLike     PostLike[]  @relation("postToPostLike")
+
+  @@index([createdBy], name: "createdBy")
+  @@index([replyTo], name: "replyTo")
+  @@map("post")
+}
+
+model PostLike {
+  userId    Int
+  postId    Int
+  createdAt DateTime @default(now()) @db.DateTime(0)
+  post      Post     @relation("postToPostLike", fields: [postId], references: [id])
+  user      User     @relation("postLikeToUser", fields: [userId], references: [id])
+
+  @@id([postId, userId])
+  @@index([postId], name: "postId")
+  @@map("post_like")
 }

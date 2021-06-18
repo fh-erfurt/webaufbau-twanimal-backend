@@ -1,15 +1,14 @@
 /** Import core libraries for REST-Server */
-const express = require("express")
-const http = require("http")
-const https = require("https")
-const cookieParser = require("cookie-parser")
-const fs = require("fs")
-const path = require("path")
-const { glob } = require("glob")
+import express from 'express';
+import http from 'http';
+import https from 'https';
+import cookieParser from 'cookie-parser';
+import fs from 'fs';
+import path from 'path';
+import { glob } from 'glob';
 
-/** Import config and database */
-const config = require("./config")
-const databaseService = require("./services/databaseService")
+import config from './config';
+import { initialize } from './services/databaseService';
 
 /** Intializing express */
 const app = express()
@@ -21,7 +20,7 @@ if (config.ssl.enabled)
     server = https.createServer(
         {
             cert: fs.readFileSync(config.ssl.certificate),
-            key: fs.readFileSync(config.ssl.kesy),
+            key: fs.readFileSync(config.ssl.key),
         },
         app
     )
@@ -36,14 +35,14 @@ app.use(express.urlencoded({ extended: true }))
 app.use(express.static(`${__dirname}/public`))
 
 /** Importing all routes from /routes */
-glob.sync("./routes/**/*.js").forEach((file) => {
+glob.sync("./dist/routes/**/*.js").forEach((file) => {
+    console.log(file);
     const route = require(path.resolve(file))
     app.use(route)
 })
 
 /** Intialize database and starting server */
-databaseService
-    .initialize()
+initialize()
     .then(() => {
         app.listen(config.port, () => {
             console.log(`Server running on port ${config.port}`)

@@ -79,27 +79,83 @@ NPM-Variante: ```npm start```
 
 YARN-Variante: ```yarn start```
 
-NODE-Variante: ```node index.js```
+NODE-Variante: ```tsc && node dist/index.js```
 
 ## Verfügbare Endpoints
 
 Folgende Endpoints können im Browser abgerufen werden:
 
-Variante | Pfad | Erforderliche Parameter | Rückgabe | Informationen
---- | --- | --- | --- | ---
-ALLE | / | - | Testrückgabe  als JSON
-POST | /user/registration | email, username, password, displayName | Registrierten Nutzer | Fehlerrückgabe bei verwendeter E-Mail oder Username
-POST | /user/login | username, password | Registrierten Nutzer | Fehlerrückgabe bei nicht vorhandenem Nutzer oder falschem Passwort, Username kann Benutzername oder E-Mail sein
+Variante | Pfad | Erforderliche Parameter | API-Token | Rückgabe | Informationen
+--- | --- | --- | --- | --- | ---
+ALLE | / | - | - | Testrückgabe  als JSON
+POST | /user/registration | email, username, password, displayName | - | User | Fehlerrückgabe bei verwendeter E-Mail oder Username
+POST | /user/login | username, password | - | User | Fehlerrückgabe bei nicht vorhandenem Nutzer oder falschem Passwort, Username kann Benutzername oder E-Mail sein
+POST | /validate-session | username, password  | Ja | User | Fehlerrückgabe bei nicht vorhandenem Nutzer oder falschem Passwort, Username kann Benutzername oder E-Mail sein
+ALLE | /user/{id} | id | Optional | User | Fehlerrückgabe bei nicht vorhandenem Nutzer
+POST | /user/{id}/follow | id | Ja | User | Fehlerrückgabe bei nicht vorhandenem Nutzer
+POST | /user/{id}/unfollow | id | Ja | User | Fehlerrückgabe bei nicht vorhandenem Nutzer
+POST | /user/{id}/posts | id | Optional | PaginationResult mit Posts | Fehlerrückgabe bei nicht vorhandenem Nutzer
+POST | /home-timeline | | Ja | PaginationResult mit Posts | 
+POST | /post/new | text | Ja | Post | Fehlerrückgabe bei ungültigem Text
+POST | /post/{id} | id | Optional | Post | Fehlerrückgabe bei nicht vorhandenem Beitrag
+POST | /post/{id}/delete | id | Ja | Textrückgabe | Fehlerrückgabe bei nicht vorhandenem Beitrag oder fehlender Berechtigung
+POST | /post/{id}/like | id | Ja | Post | Fehlerrückgabe bei nicht vorhandenem Beitrag
+POST | /post/{id}/unlike | id | Ja | Post | Fehlerrückgabe bei nicht vorhandenem Beitrag
+
+## Relevante Models
+
+Model | Feld | Typ | Beschreibung
+--- | --- | --- | ---
+User | id | number | Einzigartige ID
+&nbsp; | username | string | Einzigarger Nutzername
+&nbsp; | displayName | string | Anzeigename
+&nbsp; | profilePictureUrl | string | Profilbild
+&nbsp; | description | string | Beschreibung
+&nbsp; | createdAt | number | Unix-Timestamp mit Erstellungsdatum
+&nbsp; | followerCount | number | Anzahl Follower
+&nbsp; | followingCount | number | Anzahl Folge Ich
+&nbsp; | postCount | number | Anzahl Posts
+&nbsp; | isFollowing | ?boolean | Anfragender Nutzer folgt Nutzer
+&nbsp; | isFollowingBack | ?boolean | Nutzer folgt anfragenden Nutzer
+&nbsp; | apiToken | ?string | API-Token für Anfragen
+Post | id | number | Einzigartige ID
+&nbsp; | createdBy | User | Ersteller des Beitrags
+&nbsp; | createdAt | number | Unix-Timestamp mit Erstellungsdatum
+&nbsp; | text | string | Inhalt des Beitrags
+&nbsp; | attachements | JSON | Bild- und Videomaterial
+&nbsp; | likeCount | number | Anzahl Gefällt mir Angaben
+&nbsp; | hasLiked | ?boolean | Anfragender Nutzer gefällt Beitrag
+&nbsp; | replyTo | ?Beitrag | Beitrag auf den Beitrag antwortet
+&nbsp; | repostOf | ?Beitrag | Beitrag den Beitrag teilt
+PaginationResult | limit | number | Maximale Anzahl an Ergebnissen
+&nbsp; | page | number | Seite zum Überspringen von Ergebnissen
+&nbsp; | total | ?number | Gesamte Anzahl an Ergebnissen
+&nbsp; | moreAvailable | ?boolean | Weitere Ergebnisse verfügbar
+&nbsp; | results | ?any | Ergebnisse
+
+## Anfragen mit angemeldetem Nutzer
+
+Für die Auführung von bspw. /post/new, /user/{id}/follow und für das Anzeigen von Relationen unter Nutzern benötigt man einen angemeldeten Nutzer. Nach erfolgreicher Registrierung oder Anmeldung wird zum Nutzer das Attribut apiToken zurückgeliefert, welches für eine Authorization verwendet werden kann.
+
+API-Token werden als Header in der Request als Bearer-Token verwendet.
+
+Bspw: ```Authorization: Bearer [API-Token]```
 
 ## Ordnerhierarchie
 
+- /dist (Beinhaltet den in Javascript kompilierten Server)
 - /prisma (Beinhaltet das Datenbank-Schema)
 - /public (Beinhaltet alle statischen Dateien)
-- /routes (Beinhaltet alle Routes für die REST-API)
-- /services (Beinhaltet alle Kernmodule)
-    - databaseService.js (Verwaltet die Datenbank mittels Prisma)
-    - userService.js (Verwaltet die Nutzer, inklusive Registrierung und Login)
-    - utilityService.js (Beinhaltet Validatoren für Texte und E-Mail Adressen)
-- config.js (Beinhaltet Konfiguration (Spiegel von .env))
-- index.js (Ausgangsdatei, Startet Server, vereint Routinen und Kernmodule)
+- /src (Beinhaltet alle Typescript-Dateien)
+    - /routes (Beinhaltet alle Routes für die REST-API)
+    - /services (Beinhaltet alle Kernmodule)
+        - databaseService.ts (Verwaltet die Datenbank mittels Prisma)
+        - userService.ts (Verwaltet die Nutzer, inklusive Authentication, Registrierung und Login)
+        - postService.ts (Verwaltet die Beiträge, inklusive Home-Timeline)
+        - paginationResultService.ts (Verwaltet die PaginationResults und Middleware für routes)
+        - utilityService.ts (Beinhaltet Validatoren für Texte und E-Mail Adressen)
+    - config.ts (Beinhaltet Konfiguration (Spiegel von .env))
+    - index.ts (Ausgangsdatei, Startet Server, vereint Routinen und Kernmodule)
+    - custom.d.ts (Enhält Erweiterungen für Express-Typescript Interfaces)
 - package.json (Beinhaltet Skripte und Bibliotheken)
+- tsconfig.json (Enthält Konfiguration für Typescript Compiler)

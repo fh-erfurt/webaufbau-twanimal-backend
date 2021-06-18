@@ -1,18 +1,21 @@
 {
   "name": "twanimal-server",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node index.js"
+    "start": "tsc && node dist/index.js"
   },
   "dependencies": {
     "@prisma/client": "2.23.0",
+    "@types/express": "^4.17.12",
     "bcrypt": "^5.0.1",
     "cookie-parser": "^1.4.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "glob": "^7.1.7",
-    "prisma": "2.23.0"
+    "prisma": "2.23.0",
+    "typescript": "^4.3.2",
+    "uuid": "^8.3.2"
   }
 }

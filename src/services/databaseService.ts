@@ -1,11 +1,11 @@
-const { PrismaClient } = require("@prisma/client")
+import { PrismaClient } from "@prisma/client"
 const prisma = new PrismaClient()
 
 async function initialize() {
     await prisma.$connect()
 }
 
-module.exports = {
+export {
     initialize,
     prisma,
 }
