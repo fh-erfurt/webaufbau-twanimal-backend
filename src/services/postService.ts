@@ -4,6 +4,16 @@ import { Post, User } from '@prisma/client'
 import { exportUser, exportUserPrepared, UserExport } from './userService'
 import { PaginationResult } from "./paginationResultService"
 
+// @ts-ignore
+const imagemin: any = require('imagemin');
+import imageminMozjpeg from 'imagemin-mozjpeg'
+import imageminPngquant from 'imagemin-pngquant'
+
+import fs from 'fs'
+import util from 'util'
+
+const unlink = util.promisify(fs.unlink)
+
 interface PostExport {
     id: number
     createdBy: UserExport
@@ -54,12 +64,17 @@ async function exportPost(post: Post, user: User = null, isNested: boolean = fal
 }
 
 function exportPostPrepared(post: Post, createdBy: UserExport, likeCount: number, hasLiked: boolean = undefined, replyTo: PostExport | number = undefined, repostOf: PostExport | number = undefined) {
+    const updatedAttachements = []
+
+    for(const attachement of JSON.parse(JSON.stringify(post.attachements)))
+        updatedAttachements.push(`images/${ attachement.name }`)
+
     return {
         id: post.id,
         createdBy: createdBy,
         createdAt: post.createdAt.getTime(),
         text: post.text,
-        attachements: post.attachements,
+        attachements: updatedAttachements,
         likeCount: likeCount,
         hasLiked: hasLiked,
         replyTo: replyTo,
@@ -81,17 +96,20 @@ async function createPost(user: User, text: string, attachements, replyTo?: Post
     return post
 }
 
-async function createPostMiddleware(req, res, next) {
-    const requiredKeys = ["text"]
-    const keysAvailable = requiredKeys.every((key) => req.body[key])
+async function deleteFilesFromRequest(files) {
+    for(const file of files)
+        await unlink(file.path)
+}
 
-    if (!keysAvailable)
+async function createPostMiddleware(req, res, next) {
+    if ((!req.body.text || req.body.text.length === 0) && (!req.files || req.files.length === 0)) {
+        deleteFilesFromRequest(req.files)
         return res.status(500).json({
             error: "missing keys",
         })
+    }
 
-    const text: string = req.body.text
-    const attachements = req.body.attachements || []
+    const text: string = req.body.text || ""
     const replyToId: string | null = req.body.replyToId || null
     const repostOfId: string | null = req.body.repostOfId || null
     const user: User = req.user
@@ -99,10 +117,12 @@ async function createPostMiddleware(req, res, next) {
     let replyTo: Post
     let repostOf: Post
 
-    if (!isStringValid(text, 0, 400))
+    if (!isStringValid(text, 0, 400)) {
+        deleteFilesFromRequest(req.files)
         return res.status(500).json({
             error: "invalid text",
         })
+    }
 
     if(replyToId) {
         replyTo = await prisma.post.findUnique({
@@ -111,10 +131,12 @@ async function createPostMiddleware(req, res, next) {
             }
         })
 
-        if(replyTo == null)
+        if(replyTo == null) {
+            deleteFilesFromRequest(req.files)
             return res.status(500).json({
                 error: "invalid in reply to"
             })
+        }
     }
     
     if(repostOfId) {
@@ -124,11 +146,33 @@ async function createPostMiddleware(req, res, next) {
             }
         })
 
-        if(repostOf == null)
+            deleteFilesFromRequest(req.files)
+            if(repostOf == null) {
             return res.status(500).json({
                 error: "invalid repost of"
             })
+        }
     }
+
+    const attachements = []
+    const toMinimize = {}
+
+    for(const attachement of req.files) {
+        toMinimize[attachement.filename] = `upload/${attachement.filename}`
+        attachements.push({
+            name: attachement.filename
+        })
+    }
+
+    await imagemin(Object.values(toMinimize), {
+        destination: 'public/images',
+        plugins: [
+            imageminMozjpeg(),
+            imageminPngquant({
+                quality: [0.6, 0.8]
+            })
+        ]
+    })
 
     try {
         req.data = await createPost(user, text, attachements, replyTo, repostOf)
@@ -171,6 +215,11 @@ async function getPostMiddleware(req, res, next) {
 }
 
 async function deletePost(post: Post) {
+    for(const attachement of JSON.parse(JSON.stringify(post.attachements))) {
+        try { await unlink(`upload/${ attachement.name }`) } catch(e) {}
+        try { await unlink(`public/images/${ attachement.name }`) } catch(e) {}
+    }
+
     await prisma.postLike.deleteMany({
         where: {
             postId: post.id

@@ -118,3 +118,9 @@ dist
 .pnp.*
 
 .env
+
+upload/*
+public/images/*
+
+!upload/.gitkeep
+!public/images/.gitkeep
