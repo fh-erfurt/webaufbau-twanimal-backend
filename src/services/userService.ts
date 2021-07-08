@@ -87,7 +87,7 @@ function exportUserPrepared(user: User, includeApiToken: boolean, followerCount:
         id: user.id,
         username: user.username,
         displayName: user.displayName,
-        profilePictureUrl: config.assetPrefix + user.profilePictureUrl,
+        profilePictureUrl: config.assetPrefix + "images/" + user.profilePictureUrl,
         description: user.description,
         createdAt: user.createdAt.getTime(),
         followerCount: followerCount,
