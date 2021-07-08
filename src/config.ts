@@ -3,6 +3,7 @@ dotenv.config()
 
 export default {
     port: process.env.PORT,
+    assetPrefix: process.env.ASSET_PREFIX,
     ssl: {
         enabled: process.env.SSL_ENABLED === "true",
         certificate: process.env.SSL_CERTIFICATE,

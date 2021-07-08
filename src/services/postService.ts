@@ -11,6 +11,7 @@ import imageminPngquant from 'imagemin-pngquant'
 
 import fs from 'fs'
 import util from 'util'
+import config from "../config"
 
 const unlink = util.promisify(fs.unlink)
 
@@ -67,7 +68,7 @@ function exportPostPrepared(post: Post, createdBy: UserExport, likeCount: number
     const updatedAttachements = []
 
     for(const attachement of JSON.parse(JSON.stringify(post.attachements)))
-        updatedAttachements.push(`images/${ attachement.name }`)
+        updatedAttachements.push(`${ config.assetPrefix }images/${ attachement.name }`)
 
     return {
         id: post.id,

@@ -5,6 +5,16 @@ import config from "../config"
 import { User } from '@prisma/client'
 import { v4 as uuidv4 } from 'uuid'
 
+// @ts-ignore
+const imagemin: any = require('imagemin');
+import imageminMozjpeg from 'imagemin-mozjpeg'
+import imageminPngquant from 'imagemin-pngquant'
+
+import fs from 'fs'
+import util from 'util'
+
+const unlink = util.promisify(fs.unlink)
+
 interface UserExport {
     id: number
     username: string
@@ -18,6 +28,7 @@ interface UserExport {
     isFollowing?: boolean
     isFollowingBack?: boolean
     apiToken?: string
+    email?: string
 }
 
 async function exportUser(user: User, includeApiToken = false, requester: User = null): Promise<UserExport> {
@@ -76,7 +87,7 @@ function exportUserPrepared(user: User, includeApiToken: boolean, followerCount:
         id: user.id,
         username: user.username,
         displayName: user.displayName,
-        profilePictureUrl: user.profilePictureUrl,
+        profilePictureUrl: config.assetPrefix + user.profilePictureUrl,
         description: user.description,
         createdAt: user.createdAt.getTime(),
         followerCount: followerCount,
@@ -84,7 +95,8 @@ function exportUserPrepared(user: User, includeApiToken: boolean, followerCount:
         postCount: postCount,
         isFollowing: isFollowing,
         isFollowingBack: isFollowingBack,
-        apiToken: includeApiToken ? user.apiToken : undefined
+        apiToken: includeApiToken ? user.apiToken : undefined,
+        email: includeApiToken ? user.email : undefined
     }
 }
 
@@ -114,6 +126,7 @@ async function registerUser(email: string, username: string, displayName: string
             username: username,
             displayName: displayName,
             password: passwordHash,
+            profilePictureUrl: 'default-image.jpg',
             type: '',
             apiToken: await generateApiToken()
         },
@@ -366,6 +379,114 @@ async function unfollowUserMiddleware(req, res, next) {
     followUnfollowUserMiddleware(false, req, res, next)
 }
 
+async function updateUser(user: User, email: string, username: string, displayName: string, description: string, profilePictureUrl: string = "default-image.jpg"): Promise<User> {
+    
+    const existingEmail = await prisma.user.findFirst({
+        where: {
+            AND: [
+                { email: email },
+                { NOT: { id: user.id } }
+            ]
+        }
+    })
+
+    if (existingEmail != null) throw "email in use"
+    
+    const existingUsername = await prisma.user.findFirst({
+        where: {
+            AND: [
+                { username: username },
+                { NOT: { id: user.id } }
+            ]
+        }
+    })
+
+    if (existingUsername != null) throw "username in use"
+
+    user = await prisma.user.update({
+        where: {
+            id: user.id
+        },
+        data: {
+            username: username,
+            displayName: displayName,
+            description: description,
+            profilePictureUrl: profilePictureUrl
+        }
+    })
+
+    return user
+}
+
+async function updateUserMiddleware(req, res, next) {
+    const user: User = req.user
+
+    const email = req.body.email || user.email
+    const username = req.body.username || user.username
+    const displayName = req.body.displayName || user.displayName
+    const description = req.body.description || user.description
+    let profilePictureUrl = user.profilePictureUrl
+
+    if (!isEmailValid(email)) {
+        if(req.file) await unlink(req.file)
+        return res.status(500).json({
+            error: "invalid email",
+        })
+    }
+
+    if (!isStringValid(username, 2, 40)) {
+        if(req.file) await unlink(req.file)
+        return res.status(500).json({
+            error: "invalid username",
+        })
+    }
+
+    if (!isStringValid(displayName, 1, 120)) {
+        if(req.file) await unlink(req.file)
+        return res.status(500).json({
+            error: "invalid displayName",
+        })
+    }
+
+
+    if (!isStringValid(description, 0, 280)) {
+        if(req.file) await unlink(req.file)
+        return res.status(500).json({
+            error: "invalid description",
+        })
+    }
+
+    if(req.file) {
+        const name = req.file.filename;
+        await imagemin([`upload/${name}`], {
+            destination: 'public/images',
+            plugins: [
+                imageminMozjpeg(),
+                imageminPngquant({
+                    quality: [0.6, 0.8]
+                })
+            ]
+        })
+
+        profilePictureUrl = name
+
+        if(user.profilePictureUrl !== "default-image.jpg") {
+            try { await unlink(`upload/${ user.profilePictureUrl }`) } catch(e) {}
+            try { await unlink(`public/images/${ user.profilePictureUrl }`) } catch(e) {}
+        }
+    }
+
+    try {
+        req.user = req.data = await updateUser(user, email, username, displayName, description, profilePictureUrl)
+        next()
+    } catch (exception) {
+        console.log(exception)
+        return res.status(500).json({
+            error: exception
+        })
+    }
+}
+
 export {
     exportUser,
     exportUserPrepared,
@@ -379,7 +500,9 @@ export {
     getUserMiddleware,
     followUnfollowUser,
     followUserMiddleware,
-    unfollowUserMiddleware
+    unfollowUserMiddleware,
+    updateUser,
+    updateUserMiddleware
 }
 
 export type { UserExport };
