@@ -8,6 +8,7 @@ import { PaginationResult } from "./paginationResultService"
 const imagemin: any = require('imagemin');
 import imageminMozjpeg from 'imagemin-mozjpeg'
 import imageminPngquant from 'imagemin-pngquant'
+import imageminGifsicle from 'imagemin-gifsicle'
 
 import fs from 'fs'
 import util from 'util'
@@ -169,6 +170,7 @@ async function createPostMiddleware(req, res, next) {
         destination: 'public/images',
         plugins: [
             imageminMozjpeg(),
+            imageminGifsicle(),
             imageminPngquant({
                 quality: [0.6, 0.8]
             })
