@@ -295,10 +295,13 @@ async function getAuthenticatedUserMiddleware(req, res, next) {
     }
 }
 
-async function getUser(id: number): Promise<User> {
-    return await prisma.user.findUnique({
+async function getUser(key: any): Promise<User> {
+    return await prisma.user.findFirst({
         where: {
-            id: id
+            OR: [
+                { id: key },
+                { username: key }
+            ]
         }
     })
 }
