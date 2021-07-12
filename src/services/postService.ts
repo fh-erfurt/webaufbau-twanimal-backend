@@ -472,6 +472,8 @@ async function convertPostsToPostExport(data: any[], requester?: User): Promise<
         }
     }
 
+    output.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0))
+
     return output
 }
 
@@ -496,6 +498,9 @@ async function getPostsFromUser(user: User, requester?: User, paginationResult?:
                 }
             },
             user: true
+        },
+        orderBy: {
+            id: "desc"
         }
     })
 
@@ -525,16 +530,19 @@ async function getPostsFromUserMiddleware(req, res, next) {
 async function getHomeTimeline(user: User, paginationResult?: PaginationResult): Promise<PaginationResult> {
     if(!paginationResult) paginationResult = { limit: 20, page: 0 }
 
+    const postIdsRaw = await prisma.$queryRaw`select p.id from post as p left join user_follow as uf on uf.followTo = p.createdBy where uf.followFrom = ${ user.id } or p.createdBy = ${ user.id } order by p.id desc limit ${ paginationResult.limit + 1 } offset ${ paginationResult.limit * paginationResult.page }`;
+    const postIds = []
+
+    for(const postId of postIdsRaw)
+        postIds.push(postId.id)
+
+
     const posts = await prisma.post.findMany({
         take: paginationResult.limit + 1,
         skip: paginationResult.limit * paginationResult.page,
         where: {
-            user: {
-                followTo: {
-                    every: {
-                        followFrom: user.id
-                    }
-                }
+            id: {
+                in: postIds
             }
         },
         include: {
@@ -553,17 +561,16 @@ async function getHomeTimeline(user: User, paginationResult?: PaginationResult):
                     followTo: true
                 }
             }
+        },
+        orderBy: {
+            id: "desc"
         }
     })
 
     const postCount = await prisma.post.count({
         where: {
-            user: {
-                followTo: {
-                    every: {
-                        followFrom: user.id
-                    }
-                }
+            id: {
+                in: postIds
             }
         }
     })
