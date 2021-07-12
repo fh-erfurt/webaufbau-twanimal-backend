@@ -530,7 +530,7 @@ async function getPostsFromUserMiddleware(req, res, next) {
 async function getHomeTimeline(user: User, paginationResult?: PaginationResult): Promise<PaginationResult> {
     if(!paginationResult) paginationResult = { limit: 20, page: 0 }
 
-    const postIdsRaw = await prisma.$queryRaw`select p.id from post as p left join user_follow as uf on uf.followTo = p.createdBy where uf.followFrom = ${ user.id } or p.createdBy = ${ user.id } order by p.id desc limit ${ paginationResult.limit + 1 } offset ${ paginationResult.limit * paginationResult.page }`;
+    const postIdsRaw = await prisma.$queryRaw`select p.id from post as p left join user_follow as uf on uf.followTo = p.createdBy where p.replyTo is null and (uf.followFrom = ${ user.id } or p.createdBy = ${ user.id }) order by p.id desc limit ${ paginationResult.limit + 1 } offset ${ paginationResult.limit * paginationResult.page }`;
     const postIds = []
 
     for(const postId of postIdsRaw)
