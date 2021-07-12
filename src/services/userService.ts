@@ -382,7 +382,7 @@ async function unfollowUserMiddleware(req, res, next) {
     followUnfollowUserMiddleware(false, req, res, next)
 }
 
-async function updateUser(user: User, email: string, username: string, displayName: string, description: string, profilePictureUrl: string = "default-image.jpg"): Promise<User> {
+async function updateUser(user: User, email: string, username: string, displayName: string, description: string, password: string | null, profilePictureUrl: string = "default-image.jpg"): Promise<User> {
     
     const existingEmail = await prisma.user.findFirst({
         where: {
@@ -406,6 +406,8 @@ async function updateUser(user: User, email: string, username: string, displayNa
 
     if (existingUsername != null) throw "username in use"
 
+    const passwordHash = password ? await bcrypt.hash(password, config.passwordSaltRounds) : user.password
+
     user = await prisma.user.update({
         where: {
             id: user.id
@@ -414,7 +416,9 @@ async function updateUser(user: User, email: string, username: string, displayNa
             username: username,
             displayName: displayName,
             description: description,
-            profilePictureUrl: profilePictureUrl
+            profilePictureUrl: profilePictureUrl,
+            email: email,
+            password: passwordHash
         }
     })
 
@@ -429,6 +433,7 @@ async function updateUserMiddleware(req, res, next) {
     const displayName = req.body.displayName || user.displayName
     const description = req.body.description || user.description
     let profilePictureUrl = user.profilePictureUrl
+    let newPassword: string | null = req.body.password || null
 
     if (!isEmailValid(email)) {
         if(req.file) await unlink(req.file)
@@ -479,8 +484,15 @@ async function updateUserMiddleware(req, res, next) {
         }
     }
 
+    if(newPassword) {
+        if (!isStringValid(newPassword, 8, 200))
+            return res.status(500).json({
+                error: "invalid password",
+            })
+    }
+
     try {
-        req.user = req.data = await updateUser(user, email, username, displayName, description, profilePictureUrl)
+        req.user = req.data = await updateUser(user, email, username, displayName, description, newPassword, profilePictureUrl)
         next()
     } catch (exception) {
         console.log(exception)
