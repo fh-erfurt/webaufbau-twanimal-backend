@@ -58,8 +58,7 @@ router.post(
 		})
 	},
     userService.updateUserMiddleware,
-    async (req, res) =>
-        res.json(await userService.exportUser(req.data, true, req.user))
+    async (req, res) => res.json(await userService.exportUser(req.data, true, req.user))
 )
 
 /** Get User */
@@ -67,8 +66,7 @@ router.all(
     "/user/:id",
     userService.getAuthenticatedUserMiddleware,
     userService.getUserMiddleware,
-    async (req, res) =>
-        res.json(await userService.exportUser(req.data, false, req.user))
+    async (req, res) => res.json(await userService.exportUser(req.data, false, req.user))
 )
 
 /** Follow User via POST */
@@ -77,8 +75,7 @@ router.post(
     userService.authenticateMiddleware,
     userService.getUserMiddleware,
     userService.followUserMiddleware,
-    async (req, res) =>
-        res.json(await userService.exportUser(req.data, false, req.user))
+    async (req, res) => res.json(await userService.exportUser(req.data, false, req.user))
 )
 
 /** Unfollow User via POST */
@@ -87,8 +84,7 @@ router.post(
     userService.authenticateMiddleware,
     userService.getUserMiddleware,
     userService.unfollowUserMiddleware,
-    async (req, res) =>
-        res.json(await userService.exportUser(req.data, false, req.user))
+    async (req, res) => res.json(await userService.exportUser(req.data, false, req.user))
 )
 
 router.all(
@@ -97,7 +93,7 @@ router.all(
     userService.getUserMiddleware,
     paginationResultService.parsePaginationResultMiddleware(20),
     postService.getPostsFromUserMiddleware,
-    async (req, res) => res.json(req.paginationResult)
+    (req, res) => res.json(req.paginationResult)
 )
 
 router.all(
@@ -105,7 +101,15 @@ router.all(
     userService.authenticateMiddleware,
     paginationResultService.parsePaginationResultMiddleware(20),
     postService.getHomeTimelineMiddleware,
-    async (req, res) => res.json(req.paginationResult)
+    (req, res) => res.json(req.paginationResult)
+)
+
+router.all(
+    "/suggestions",
+    userService.authenticateMiddleware,
+    paginationResultService.parsePaginationResultMiddleware(5, 20),
+    userService.getUserSuggestionsMiddleware,
+    (req, res) => res.json(req.paginationResult)
 )
 
 module.exports = router

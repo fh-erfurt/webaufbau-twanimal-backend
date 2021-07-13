@@ -666,8 +666,6 @@ async function getHomeTimeline(
 	for (const postId of postIdsRaw) postIds.push(postId.id)
 
 	const posts = await prisma.post.findMany({
-		take: paginationResult.limit + 1,
-		skip: paginationResult.limit * paginationResult.page,
 		where: {
 			id: {
 				in: postIds,
