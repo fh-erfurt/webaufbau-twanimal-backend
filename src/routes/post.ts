@@ -2,6 +2,7 @@ import express from "express"
 const router = express.Router()
 const userService = require("../services/userService")
 const postService = require("../services/postService")
+const paginationResultService = require("../services/paginationResultService")
 
 import path from "path"
 import multer from "multer"
@@ -77,6 +78,15 @@ router.post(
 	postService.unlikePostMiddleware,
 	async (req, res) =>
 		res.json(await postService.exportPost(req.data, req.user))
+)
+
+/** Get Post */
+router.all(
+	"/post/:id/replies",
+	userService.getAuthenticatedUserMiddleware,
+    paginationResultService.parsePaginationResultMiddleware(20),
+    postService.getRepliesMiddleware,
+    (req, res) => res.json(req.paginationResult)
 )
 
 module.exports = router

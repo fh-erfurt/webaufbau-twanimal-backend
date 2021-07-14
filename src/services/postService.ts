@@ -408,7 +408,7 @@ async function convertPostsToPostExport(
 		where: {
 			id: {
 				in: postIds,
-			},
+			}
 		},
 		select: {
 			id: true,
@@ -717,6 +717,57 @@ async function getHomeTimelineMiddleware(req, res, next) {
 	next()
 }
 
+async function getReplies(id: number, requester?: User, paginationResult?: PaginationResult): Promise<PaginationResult> {
+	if (!paginationResult) paginationResult = { limit: 20, page: 0 }
+
+	const posts = await prisma.post.findMany({
+		take: paginationResult.limit + 1,
+		skip: paginationResult.limit * paginationResult.page,
+		where: {
+			replyTo: id
+		},
+		include: {
+			replyToPost: {
+				include: {
+					user: true,
+				},
+			},
+			repostOfPost: {
+				include: {
+					user: true,
+				},
+			},
+			user: true,
+		},
+		orderBy: {
+			id: "desc",
+		},
+	})
+
+	const postCount = await prisma.post.count({
+		where: {
+			replyTo: id
+		},
+	})
+
+	const output = await convertPostsToPostExport(posts, requester)
+
+	paginationResult.total = postCount
+	paginationResult.moreAvailable = posts.length > paginationResult.limit
+	paginationResult.results = output.slice(0, paginationResult.limit)
+
+	return paginationResult
+}
+
+async function getRepliesMiddleware(req, res, next) {
+	const id: string = req.params.id
+	const user: User = req.data
+	const paginationResult: PaginationResult = req.paginationResult
+
+	req.data = await getReplies(parseInt(id), user, paginationResult)
+	next()
+}
+
 export {
 	exportPost,
 	createPost,
@@ -731,6 +782,7 @@ export {
 	getPostsFromUserMiddleware,
 	getHomeTimelineMiddleware,
 	convertPostsToPostExport,
+	getRepliesMiddleware
 }
 
 export type { UserExport }
