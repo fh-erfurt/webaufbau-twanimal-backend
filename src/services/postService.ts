@@ -375,21 +375,22 @@ async function convertPostsToPostExport(
 		if (postIds.indexOf(id) === -1) postIds.push(id)
 		if (userIds.indexOf(userId) === -1) userIds.push(userId)
 
-		if (post.replyToPost) {
-			id = post.replyToPost.id
+		if (post.replyTo) {
+			id = post.replyTo
 			userId = post.createdBy
 
 			if (postIds.indexOf(id) === -1) postIds.push(id)
 			if (userIds.indexOf(userId) === -1) userIds.push(userId)
 		}
 
-		if (post.repostOfPost) {
-			id = post.repostOfPost.id
+		if (post.repostOf) {
+			id = post.repostOf
 			userId = post.createdBy
 
 			if (postIds.indexOf(id) === -1) postIds.push(id)
 			if (userIds.indexOf(userId) === -1) userIds.push(userId)
 		}
+
 	}
 
 	let postStats: { [id: number]: { likeCount: number; hasLiked?: boolean } } =
