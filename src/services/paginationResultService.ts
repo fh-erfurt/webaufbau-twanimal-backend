@@ -6,6 +6,14 @@ interface PaginationResult {
     results?: any[]
 }
 
+/**
+ * Parses query parameters from request and initializes
+ * pagination result for other middleware functions
+ * based on inputs or default parameters
+ * 
+ * @param defaultLimit 
+ * @param maximumLimit
+ */
 function parsePaginationResultMiddleware(defaultLimit: number = 20, maximumLimit: number = 50) {
     return (req, res, next) => {
         let limit = parseInt(req.query.limit) || defaultLimit

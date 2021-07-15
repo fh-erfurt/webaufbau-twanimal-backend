@@ -1,18 +1,18 @@
-import { prisma } from "./databaseService"
-import { isStringValid, isEmailValid } from "./utilityService"
-import bcrypt from "bcrypt"
-import config from "../config"
-import { User } from "@prisma/client"
-import { v4 as uuidv4 } from "uuid"
+import { prisma } from './databaseService'
+import { isStringValid, isEmailValid } from './utilityService'
+import bcrypt from 'bcrypt'
+import config from '../config'
+import { User } from '@prisma/client'
+import { v4 as uuidv4 } from 'uuid'
 
 // @ts-ignore
-const imagemin: any = require("imagemin")
-import imageminMozjpeg from "imagemin-mozjpeg"
-import imageminPngquant from "imagemin-pngquant"
+const imagemin: any = require('imagemin')
+import imageminMozjpeg from 'imagemin-mozjpeg'
+import imageminPngquant from 'imagemin-pngquant'
 
-import fs from "fs"
-import util from "util"
-import { PaginationResult } from "./paginationResultService"
+import fs from 'fs'
+import util from 'util'
+import { PaginationResult } from './paginationResultService'
 
 const unlink = util.promisify(fs.unlink)
 
@@ -32,11 +32,11 @@ interface UserExport {
 	email?: string
 }
 
-async function exportUser(
-	user: User,
-	includeApiToken = false,
-	requester: User = null
-): Promise<UserExport> {
+/**
+ * Exports user with follower-relationship if user is provided
+ * as well as api token if required
+ */
+async function exportUser(user: User, includeApiToken = false, requester: User = null): Promise<UserExport> {
 	let isFollowing = undefined
 	let isFollowingBack = undefined
 
@@ -78,16 +78,8 @@ async function exportUser(
 		isFollowingBack = false
 
 		for (const relation of relations)
-			if (
-				relation.followTo === user.id &&
-				relation.followFrom === requester.id
-			)
-				isFollowing = true
-			else if (
-				relation.followTo === requester.id &&
-				relation.followFrom === user.id
-			)
-				isFollowingBack = true
+			if (relation.followTo === user.id && relation.followFrom === requester.id) isFollowing = true
+			else if (relation.followTo === requester.id && relation.followFrom === user.id) isFollowingBack = true
 	}
 
 	return exportUserPrepared(
@@ -101,6 +93,18 @@ async function exportUser(
 	)
 }
 
+/**
+ * Exports prepared user without database fetches
+ *
+ * @param user
+ * @param includeApiToken
+ * @param followerCount
+ * @param followingCount
+ * @param postCount
+ * @param isFollowing
+ * @param isFollowingBack
+ * @returns
+ */
 function exportUserPrepared(
 	user: User,
 	includeApiToken: boolean,
@@ -114,8 +118,7 @@ function exportUserPrepared(
 		id: user.id,
 		username: user.username,
 		displayName: user.displayName,
-		profilePictureUrl:
-			config.assetPrefix + "images/" + user.profilePictureUrl,
+		profilePictureUrl: config.assetPrefix + 'images/' + user.profilePictureUrl,
 		description: user.description,
 		createdAt: user.createdAt.getTime(),
 		followerCount: followerCount,
@@ -128,7 +131,10 @@ function exportUserPrepared(
 	}
 }
 
-/** Creating database entry if email and username are not in use (case insensitive) */
+/**
+ * Creates a user for database and validates if
+ * email and username are not in use
+ *  */
 async function registerUser(
 	email: string,
 	username: string,
@@ -142,7 +148,7 @@ async function registerUser(
 		},
 	})
 
-	if (existingEmail != null) throw "email in use"
+	if (existingEmail != null) throw 'email in use'
 
 	const existingUsername = await prisma.user.findFirst({
 		where: {
@@ -150,7 +156,7 @@ async function registerUser(
 		},
 	})
 
-	if (existingUsername != null) throw "username in use"
+	if (existingUsername != null) throw 'username in use'
 
 	const passwordHash = await bcrypt.hash(password, config.passwordSaltRounds)
 
@@ -160,8 +166,8 @@ async function registerUser(
 			username: username,
 			displayName: displayName,
 			password: passwordHash,
-			profilePictureUrl: "default-image.jpg",
-			type: "",
+			profilePictureUrl: 'default-image.jpg',
+			type: '',
 			apiToken: await generateApiToken(),
 		},
 	})
@@ -169,6 +175,11 @@ async function registerUser(
 	return user
 }
 
+/**
+ * Generates unique API Token for a user
+ *
+ * @returns
+ */
 async function generateApiToken(): Promise<string> {
 	const apiToken: string = uuidv4()
 
@@ -182,14 +193,16 @@ async function generateApiToken(): Promise<string> {
 	return apiToken
 }
 
-/** Express middlerware for registering user */
+/**
+ * Validates post body and creates user if successful
+ */
 async function registerUserMiddleware(req, res, next) {
-	const requiredKeys = ["email", "username", "displayName", "password"]
+	const requiredKeys = ['email', 'username', 'displayName', 'password']
 	const keysAvailable = requiredKeys.every((key) => req.body[key])
 
 	if (!keysAvailable)
 		return res.status(500).json({
-			error: "missing keys",
+			error: 'missing keys',
 		})
 
 	const email: string = req.body.email
@@ -199,32 +212,26 @@ async function registerUserMiddleware(req, res, next) {
 
 	if (!isEmailValid(email))
 		return res.status(500).json({
-			error: "invalid email",
+			error: 'invalid email',
 		})
 
 	if (!isStringValid(username, 2, 40))
 		return res.status(500).json({
-			error: "invalid username",
+			error: 'invalid username',
 		})
 
 	if (!isStringValid(displayName, 1, 120))
 		return res.status(500).json({
-			error: "invalid displayName",
+			error: 'invalid displayName',
 		})
 
 	if (!isStringValid(password, 8, 200))
 		return res.status(500).json({
-			error: "invalid password",
+			error: 'invalid password',
 		})
 
 	try {
-		const user = await registerUser(
-			email,
-			username,
-			displayName,
-			password,
-			""
-		)
+		const user = await registerUser(email, username, displayName, password, '')
 
 		req.user = user
 		next()
@@ -236,34 +243,32 @@ async function registerUserMiddleware(req, res, next) {
 	}
 }
 
-/** Retrieving user and validating password if user exists */
-async function loginUser(
-	emailOrUsername: string,
-	password: string
-): Promise<User> {
+/**
+ * Validates post body and returns user if credentials are valid
+ */
+async function loginUser(emailOrUsername: string, password: string): Promise<User> {
 	const user = await prisma.user.findFirst({
 		where: {
 			OR: [{ email: emailOrUsername }, { username: emailOrUsername }],
 		},
 	})
 
-	if (user == null) throw "unknown user"
+	if (user == null) throw 'unknown user'
 
 	const passwordValid: boolean = await bcrypt.compare(password, user.password)
 
-	if (!passwordValid) throw "invalid password"
+	if (!passwordValid) throw 'invalid password'
 
 	return user
 }
 
-/** express middleware for logging in user */
 async function loginUserMiddleware(req, res, next) {
-	const requiredKeys = ["username", "password"]
+	const requiredKeys = ['username', 'password']
 	const keysAvailable = requiredKeys.every((key) => req.body[key])
 
 	if (!keysAvailable)
 		return res.status(500).json({
-			error: "missing keys",
+			error: 'missing keys',
 		})
 
 	const username: string = req.body.username
@@ -281,6 +286,12 @@ async function loginUserMiddleware(req, res, next) {
 	}
 }
 
+/**
+ * Returns user if apiToken is valid
+ *
+ * @param apiToken
+ * @returns
+ */
 async function validateApiToken(apiToken: string): Promise<User | null> {
 	return await prisma.user.findUnique({
 		where: {
@@ -289,24 +300,33 @@ async function validateApiToken(apiToken: string): Promise<User | null> {
 	})
 }
 
+/**
+ * Validates header from request and validates apiToken
+ * Returns user if valid
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @returns
+ */
 async function authenticateMiddleware(req, res, next) {
 	if (!req.headers.authorization)
 		return res.status(403).json({
-			error: "missing credentials",
+			error: 'missing credentials',
 		})
 
 	const authorization: string = req.headers.authorization
 
-	if (!authorization.startsWith("Bearer "))
+	if (!authorization.startsWith('Bearer '))
 		return res.status(403).json({
-			error: "invalid credentials",
+			error: 'invalid credentials',
 		})
 
-	const user = await validateApiToken(authorization.replace("Bearer ", ""))
+	const user = await validateApiToken(authorization.replace('Bearer ', ''))
 
 	if (!user)
 		return res.status(403).json({
-			error: "invalid credentials",
+			error: 'invalid credentials',
 		})
 	else {
 		req.user = user
@@ -314,21 +334,32 @@ async function authenticateMiddleware(req, res, next) {
 	}
 }
 
+/**
+ * Optional authorization
+ *
+ * Validates header from request and validates apiToken
+ * Returns user if valid
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @returns
+ */
 async function getAuthenticatedUserMiddleware(req, res, next) {
 	if (!req.headers.authorization) return next()
 
 	const authorization: string = req.headers.authorization
 
-	if (!authorization.startsWith("Bearer "))
+	if (!authorization.startsWith('Bearer '))
 		return res.status(403).json({
-			error: "invalid credentials",
+			error: 'invalid credentials',
 		})
 
-	const user = await validateApiToken(authorization.replace("Bearer ", ""))
+	const user = await validateApiToken(authorization.replace('Bearer ', ''))
 
 	if (!user)
 		return res.status(403).json({
-			error: "invalid credentials",
+			error: 'invalid credentials',
 		})
 	else {
 		req.user = user
@@ -336,10 +367,16 @@ async function getAuthenticatedUserMiddleware(req, res, next) {
 	}
 }
 
+/**
+ * Returns user if id or username matches
+ *
+ * @param key
+ * @returns
+ */
 async function getUser(key: number | string): Promise<User> {
 	return await prisma.user.findUnique({
 		where: {
-			[typeof key === "number" ? "id" : "username"]: key,
+			[typeof key === 'number' ? 'id' : 'username']: key,
 		},
 	})
 }
@@ -355,7 +392,7 @@ async function getUserMiddleware(req, res, next) {
 
 		if (!user)
 			return res.status(404).json({
-				error: "unknown user",
+				error: 'unknown user',
 			})
 
 		req.data = user
@@ -368,11 +405,14 @@ async function getUserMiddleware(req, res, next) {
 	}
 }
 
-async function followUnfollowUser(
-	follow: boolean,
-	followFrom: User,
-	followTo: User
-) {
+/**
+ * Creates database entry for following or unfollowing users
+ *
+ * @param follow
+ * @param followFrom
+ * @param followTo
+ */
+async function followUnfollowUser(follow: boolean, followFrom: User, followTo: User) {
 	if (follow)
 		await prisma.userFollow.upsert({
 			where: {
@@ -405,7 +445,7 @@ async function followUnfollowUserMiddleware(follow: boolean, req, res, next) {
 
 		if (followFrom.id === followTo.id)
 			return res.status(500).json({
-				error: "user cannot follow self",
+				error: 'user cannot follow self',
 			})
 
 		await followUnfollowUser(follow, followFrom, followTo)
@@ -427,6 +467,18 @@ async function unfollowUserMiddleware(req, res, next) {
 	followUnfollowUserMiddleware(false, req, res, next)
 }
 
+/**
+ * Updates user and validates email and username
+ *
+ * @param user
+ * @param email
+ * @param username
+ * @param displayName
+ * @param description
+ * @param password
+ * @param profilePictureUrl
+ * @returns
+ */
 async function updateUser(
 	user: User,
 	email: string,
@@ -434,7 +486,7 @@ async function updateUser(
 	displayName: string,
 	description: string,
 	password: string | null,
-	profilePictureUrl: string = "default-image.jpg"
+	profilePictureUrl: string = 'default-image.jpg'
 ): Promise<User> {
 	const existingEmail = await prisma.user.findFirst({
 		where: {
@@ -442,7 +494,7 @@ async function updateUser(
 		},
 	})
 
-	if (existingEmail != null) throw "email in use"
+	if (existingEmail != null) throw 'email in use'
 
 	const existingUsername = await prisma.user.findFirst({
 		where: {
@@ -450,11 +502,9 @@ async function updateUser(
 		},
 	})
 
-	if (existingUsername != null) throw "username in use"
+	if (existingUsername != null) throw 'username in use'
 
-	const passwordHash = password
-		? await bcrypt.hash(password, config.passwordSaltRounds)
-		: user.password
+	const passwordHash = password ? await bcrypt.hash(password, config.passwordSaltRounds) : user.password
 
 	user = await prisma.user.update({
 		where: {
@@ -473,6 +523,15 @@ async function updateUser(
 	return user
 }
 
+/**
+ * Validates post body and updates user
+ * if everything is validated
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @returns
+ */
 async function updateUserMiddleware(req, res, next) {
 	const user: User = req.user
 
@@ -486,35 +545,35 @@ async function updateUserMiddleware(req, res, next) {
 	if (!isEmailValid(email)) {
 		if (req.file) await unlink(req.file)
 		return res.status(500).json({
-			error: "invalid email",
+			error: 'invalid email',
 		})
 	}
 
 	if (!isStringValid(username, 2, 40)) {
 		if (req.file) await unlink(req.file)
 		return res.status(500).json({
-			error: "invalid username",
+			error: 'invalid username',
 		})
 	}
 
 	if (!isStringValid(displayName, 1, 120)) {
 		if (req.file) await unlink(req.file)
 		return res.status(500).json({
-			error: "invalid displayName",
+			error: 'invalid displayName',
 		})
 	}
 
 	if (!isStringValid(description, 0, 280)) {
 		if (req.file) await unlink(req.file)
 		return res.status(500).json({
-			error: "invalid description",
+			error: 'invalid description',
 		})
 	}
 
 	if (req.file) {
 		const name = req.file.filename
 		await imagemin([`upload/${name}`], {
-			destination: "public/images",
+			destination: 'public/images',
 			plugins: [
 				imageminMozjpeg(),
 				imageminPngquant({
@@ -525,7 +584,7 @@ async function updateUserMiddleware(req, res, next) {
 
 		profilePictureUrl = name
 
-		if (user.profilePictureUrl !== "default-image.jpg") {
+		if (user.profilePictureUrl !== 'default-image.jpg') {
 			try {
 				await unlink(`upload/${user.profilePictureUrl}`)
 			} catch (e) {}
@@ -538,7 +597,7 @@ async function updateUserMiddleware(req, res, next) {
 	if (newPassword) {
 		if (!isStringValid(newPassword, 8, 200))
 			return res.status(500).json({
-				error: "invalid password",
+				error: 'invalid password',
 			})
 	}
 
@@ -561,31 +620,34 @@ async function updateUserMiddleware(req, res, next) {
 	}
 }
 
-async function getUserSuggestions(
-	requester: User,
-	paginationResult?: PaginationResult
-): Promise<PaginationResult> {
+/**
+ * Returns suggestions as pagination result if
+ * user is not following them
+ *
+ * @param requester
+ * @param paginationResult
+ * @returns
+ */
+async function getUserSuggestions(requester: User, paginationResult?: PaginationResult): Promise<PaginationResult> {
 	if (!paginationResult) paginationResult = { limit: 5, page: 0 }
 
 	const userIdsRaw = await prisma.$queryRaw`
         select u.id from user as u
         left join user_follow as uf on uf.followFrom = ${requester.id} and uf.followTo = u.id
         where uf.followFrom is null and u.id != ${requester.id}
-        limit ${paginationResult.limit + 1} offset ${
-		paginationResult.limit * paginationResult.page
-	}`
+        limit ${paginationResult.limit + 1} offset ${paginationResult.limit * paginationResult.page}`
 
 	const userIds = []
 
 	for (const userId of userIdsRaw) userIds.push(userId.id)
 
-    const users = await prisma.user.findMany({
+	const users = await prisma.user.findMany({
 		where: {
 			id: {
-				in: userIds
+				in: userIds,
 			},
 		},
-    })
+	})
 
 	const userIdsCount = await prisma.$queryRaw`
         select count(u.id) as count from user as u
@@ -594,8 +656,7 @@ async function getUserSuggestions(
 
 	const output = []
 
-	for (const user of users)
-		output.push(await exportUser(user, false, requester))
+	for (const user of users) output.push(await exportUser(user, false, requester))
 
 	paginationResult.total = userIdsCount[0].count
 	paginationResult.moreAvailable = output.length > paginationResult.limit
@@ -628,7 +689,7 @@ export {
 	unfollowUserMiddleware,
 	updateUser,
 	updateUserMiddleware,
-    getUserSuggestionsMiddleware,
+	getUserSuggestionsMiddleware,
 }
 
 export type { UserExport }

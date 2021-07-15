@@ -28,6 +28,16 @@ interface PostExport {
 	repostOf?: PostExport | number
 }
 
+/**
+ * Returns PostExport with loaded replyTo and repostOf
+ * if isNested is true, as well as hasLiked if
+ * user is provided
+ * 
+ * @param post 
+ * @param user 
+ * @param isNested 
+ * @returns Promise<PostExport>
+ */
 async function exportPost(
 	post: Post,
 	user: User = null,
@@ -92,6 +102,18 @@ async function exportPost(
 	)
 }
 
+/**
+ * As described it returns the final PostExport with
+ * given parameters without any database fetches
+ * 
+ * @param post 
+ * @param createdBy 
+ * @param likeCount 
+ * @param hasLiked 
+ * @param replyTo 
+ * @param repostOf 
+ * @returns 
+ */
 function exportPostPrepared(
 	post: Post,
 	createdBy: UserExport,
@@ -120,6 +142,16 @@ function exportPostPrepared(
 	}
 }
 
+/**
+ * Inserts the new post into the database
+ * 
+ * @param user 
+ * @param text 
+ * @param attachements 
+ * @param replyTo 
+ * @param repostOf 
+ * @returns 
+ */
 async function createPost(
 	user: User,
 	text: string,
@@ -144,6 +176,14 @@ async function deleteFilesFromRequest(files) {
 	for (const file of files) await unlink(file.path)
 }
 
+/**
+ * Creates post from request and validates given post parameters
+ * 
+ * @param req 
+ * @param res 
+ * @param next 
+ * @returns 
+ */
 async function createPostMiddleware(req, res, next) {
 	if (
 		(!req.body.text || req.body.text.length === 0) &&
@@ -232,6 +272,12 @@ async function createPostMiddleware(req, res, next) {
 	}
 }
 
+/**
+ * Returns Post if exists, otherwise null
+ * 
+ * @param id 
+ * @returns 
+ */
 async function getPost(id: number): Promise<Post> {
 	return await prisma.post.findUnique({
 		where: {
@@ -240,6 +286,14 @@ async function getPost(id: number): Promise<Post> {
 	})
 }
 
+/**
+ * Returns Post based on parameter
+ * 
+ * @param req 
+ * @param res 
+ * @param next 
+ * @returns 
+ */
 async function getPostMiddleware(req, res, next) {
 	const id: string = req.params.id
 
@@ -261,6 +315,11 @@ async function getPostMiddleware(req, res, next) {
 	}
 }
 
+/**
+ * Deletes post and attachements if given
+ * 
+ * @param post 
+ */
 async function deletePost(post: Post) {
 	for (const attachement of JSON.parse(JSON.stringify(post.attachements))) {
 		try {
@@ -284,6 +343,15 @@ async function deletePost(post: Post) {
 	})
 }
 
+/**
+ * Deletes post based on parameter and validates
+ * existence as well as author
+ * 
+ * @param req 
+ * @param res 
+ * @param next 
+ * @returns 
+ */
 async function deletePostMiddleware(req, res, next) {
 	const id: string = req.params.id
 
@@ -311,6 +379,13 @@ async function deletePostMiddleware(req, res, next) {
 	}
 }
 
+/**
+ * Removes or adds like from/to post with user
+ * 
+ * @param like 
+ * @param post 
+ * @param user 
+ */
 async function likeUnlikePost(like: boolean, post: Post, user: User) {
 	if (like)
 		await prisma.postLike.upsert({
@@ -337,6 +412,15 @@ async function likeUnlikePost(like: boolean, post: Post, user: User) {
 		})
 }
 
+/**
+ * Removes or adds like from/to post based on user and post
+ * 
+ * @param like 
+ * @param req 
+ * @param res 
+ * @param next 
+ * @returns 
+ */
 async function likeUnlikePostMiddleware(like: boolean, req, res, next) {
 	try {
 		const user: User = req.user
@@ -361,6 +445,14 @@ async function unlikePostMiddleware(req, res, next) {
 	likeUnlikePostMiddleware(false, req, res, next)
 }
 
+/**
+ * Convers multiple posts to postExport with
+ * exportPostPrepared function
+ * 
+ * @param data 
+ * @param requester 
+ * @returns 
+ */
 async function convertPostsToPostExport(
 	data: any[],
 	requester?: User
@@ -592,6 +684,14 @@ async function convertPostsToPostExport(
 	return output
 }
 
+/**
+ * Returns posts from user as pagination result
+ * 
+ * @param user 
+ * @param requester 
+ * @param paginationResult 
+ * @returns 
+ */
 async function getPostsFromUser(
 	user: User,
 	requester?: User,
@@ -646,6 +746,13 @@ async function getPostsFromUserMiddleware(req, res, next) {
 	next()
 }
 
+/**
+ * Returns home timeline of user as pagination result
+ * 
+ * @param user 
+ * @param paginationResult 
+ * @returns 
+ */
 async function getHomeTimeline(
 	user: User,
 	paginationResult?: PaginationResult
@@ -718,6 +825,14 @@ async function getHomeTimelineMiddleware(req, res, next) {
 	next()
 }
 
+/**
+ * Returns replies from post based on id
+ * 
+ * @param id 
+ * @param requester 
+ * @param paginationResult 
+ * @returns 
+ */
 async function getReplies(id: number, requester?: User, paginationResult?: PaginationResult): Promise<PaginationResult> {
 	if (!paginationResult) paginationResult = { limit: 20, page: 0 }
 

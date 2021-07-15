@@ -4,8 +4,11 @@ import { Post, User } from "@prisma/client"
 import { PaginationResult } from "./paginationResultService"
 
 import { exportUser } from "./userService"
-import { convertPostsToPostExport, exportPost } from "./postService"
+import { convertPostsToPostExport } from "./postService"
 
+/**
+ * Returns post as pagination result maching query
+ */
 async function searchPosts(
 	query: string,
 	requester: User,
@@ -73,6 +76,14 @@ async function searchPostsMiddleware(req, res, next) {
 	next()
 }
 
+/**
+ * Returns users as pagination result based on query
+ * 
+ * @param query 
+ * @param requester 
+ * @param paginationResult 
+ * @returns 
+ */
 async function searchUsers(
 	query: string,
 	requester: User,
@@ -125,6 +136,13 @@ async function searchUsersMiddleware(req, res, next) {
 	next()
 }
 
+/**
+ * Returns posts and users combined with each pagination result
+ * 
+ * @param req 
+ * @param res 
+ * @param next 
+ */
 async function getCombinedMiddleware(req, res, next) {
 	const paginationResult: PaginationResult = req.paginationResult
 	const user: User = req.data

@@ -7,6 +7,11 @@ const paginationResultService = require("../services/paginationResultService")
 import path from "path"
 import multer from "multer"
 
+/**
+ * Determine the destination and file name for uploaded
+ * files which stores uploaded files in req.file or
+ * req.files based on parameters (array, single)
+ */
 const multerStorage = multer.diskStorage({
 	destination: (_, __, callback) => {
 		callback(null, "./upload")
@@ -17,6 +22,10 @@ const multerStorage = multer.diskStorage({
 	},
 })
 
+/**
+ * Initialize multer with filtering files which aren't
+ * image-files (gifs allowed)
+ */
 const upload = multer({
 	storage: multerStorage,
 	fileFilter: (_, file, callback) => {
@@ -27,7 +36,12 @@ const upload = multer({
 	},
 })
 
-/** New Post via POST */
+/** 
+ * Create new post with required authentication
+ * and up to 4 attachements
+ * 
+ * @returns PostExport
+ */
 router.post(
 	"/post/new",
 	userService.authenticateMiddleware,
@@ -43,7 +57,11 @@ router.post(
 		res.json(await postService.exportPost(req.data, req.user))
 )
 
-/** Get Post */
+/** 
+ * Get post by id with optional authentication
+ * 
+ * @returns PostExport
+ */
 router.all(
 	"/post/:id",
 	userService.getAuthenticatedUserMiddleware,
@@ -52,7 +70,12 @@ router.all(
 		res.json(await postService.exportPost(req.data, req.user))
 )
 
-/** New Post via POST */
+/**
+ * Delete post with id with required authentication
+ * for creator of the post
+ * 
+ * @returns String ('OK')
+ */
 router.post(
 	"/post/:id/delete",
 	userService.authenticateMiddleware,
@@ -60,7 +83,11 @@ router.post(
 	(req, res) => res.status(200).send("OK")
 )
 
-/** Like Post via POST */
+/**
+ * Like post with id with required authentication
+ * 
+ * @returns PostExport
+ */
 router.post(
 	"/post/:id/like",
 	userService.authenticateMiddleware,
@@ -70,7 +97,11 @@ router.post(
 		res.json(await postService.exportPost(req.data, req.user))
 )
 
-/** Unlike Post via POST */
+/**
+ * Unlike post with id with required authentication
+ * 
+ * @returns PostExport
+ */
 router.post(
 	"/post/:id/unlike",
 	userService.authenticateMiddleware,
@@ -80,7 +111,12 @@ router.post(
 		res.json(await postService.exportPost(req.data, req.user))
 )
 
-/** Get Post */
+/**
+ * Get all replies from post with id with optional authentication
+ * 
+ * @returns PaginationResult<PostExport>
+ * 
+ */
 router.all(
 	"/post/:id/replies",
 	userService.getAuthenticatedUserMiddleware,

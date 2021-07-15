@@ -5,7 +5,11 @@ const postService = require("../services/postService")
 const searchService = require("../services/searchService")
 const paginationResultService = require("../services/paginationResultService")
 
-/** Search for posts */
+/** 
+ * Returns all posts matching query parameter with optional authentication
+ * 
+ * @returns PaginationResult<PostExport>
+ */
 router.all(
 	"/search/post/:query",
 	userService.getAuthenticatedUserMiddleware,
@@ -14,7 +18,11 @@ router.all(
     async (req, res) => res.json(req.paginationResult)
 )
 
-/** Search for users */
+/** 
+ * Returns all users matching query parameter with optional authentication
+ * 
+ * @returns PaginationResult<UserExport>
+ */
 router.all(
 	"/search/user/:query",
 	userService.getAuthenticatedUserMiddleware,
@@ -23,7 +31,11 @@ router.all(
     async (req, res) => res.json(req.paginationResult)
 )
 
-/** Search for users and posts combined */
+/** 
+ * Returns all posts and users matching query parameter with optional authentication
+ * 
+ * @returns PaginationResult<PostExport> & PaginationResult<UserExport>
+ */
 router.all(
 	"/search/combined/:query",
 	userService.getAuthenticatedUserMiddleware,
