@@ -17,7 +17,6 @@ model User {
   profilePictureUrl String?      @db.VarChar(100)
   description       String?      @default("") @db.VarChar(280)
   createdAt         DateTime     @default(now()) @db.DateTime(0)
-  type              String       @db.VarChar(50)
   apiToken          String       @unique @db.VarChar(36)
   post              Post[]       @relation("postToUser")
   postLike          PostLike[]   @relation("postLikeToUser")

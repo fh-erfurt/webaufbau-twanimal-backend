@@ -140,7 +140,6 @@ async function registerUser(
 	username: string,
 	displayName: string,
 	password: string,
-	type: string
 ): Promise<User> {
 	const existingEmail = await prisma.user.findFirst({
 		where: {
@@ -167,7 +166,6 @@ async function registerUser(
 			displayName: displayName,
 			password: passwordHash,
 			profilePictureUrl: 'default-image.jpg',
-			type: '',
 			apiToken: await generateApiToken(),
 		},
 	})
@@ -231,7 +229,7 @@ async function registerUserMiddleware(req, res, next) {
 		})
 
 	try {
-		const user = await registerUser(email, username, displayName, password, '')
+		const user = await registerUser(email, username, displayName, password)
 
 		req.user = user
 		next()
