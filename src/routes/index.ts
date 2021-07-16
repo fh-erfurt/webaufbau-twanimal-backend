@@ -1,7 +1,7 @@
 import express from 'express'
 const router = express.Router()
 
-/** 
+/**
  * Index route for all request types to
  * show that the API is working
  */

@@ -1,10 +1,10 @@
-import { prisma } from "./databaseService"
-import { isStringValid } from "./utilityService"
-import { Post, User } from "@prisma/client"
-import { PaginationResult } from "./paginationResultService"
+import { prisma } from './databaseService'
+import { isStringValid } from './utilityService'
+import { Post, User } from '@prisma/client'
+import { PaginationResult } from './paginationResultService'
 
-import { exportUser } from "./userService"
-import { convertPostsToPostExport } from "./postService"
+import { exportUser } from './userService'
+import { convertPostsToPostExport } from './postService'
 
 /**
  * Returns post as pagination result maching query
@@ -44,7 +44,7 @@ async function searchPosts(
 			},
 		},
 		orderBy: {
-			id: "desc",
+			id: 'desc',
 		},
 	})
 
@@ -78,11 +78,11 @@ async function searchPostsMiddleware(req, res, next) {
 
 /**
  * Returns users as pagination result based on query
- * 
- * @param query 
- * @param requester 
- * @param paginationResult 
- * @returns 
+ *
+ * @param query
+ * @param requester
+ * @param paginationResult
+ * @returns
  */
 async function searchUsers(
 	query: string,
@@ -102,7 +102,7 @@ async function searchUsers(
 			],
 		},
 		orderBy: {
-			id: "desc",
+			id: 'desc',
 		},
 	})
 
@@ -118,8 +118,7 @@ async function searchUsers(
 
 	const output = []
 
-	for (const user of users)
-		output.push(await exportUser(user, false, requester))
+	for (const user of users) output.push(await exportUser(user, false, requester))
 
 	paginationResult.total = userCount
 	paginationResult.moreAvailable = output.length > paginationResult.limit
@@ -138,20 +137,16 @@ async function searchUsersMiddleware(req, res, next) {
 
 /**
  * Returns posts and users combined with each pagination result
- * 
- * @param req 
- * @param res 
- * @param next 
+ *
+ * @param req
+ * @param res
+ * @param next
  */
 async function getCombinedMiddleware(req, res, next) {
 	const paginationResult: PaginationResult = req.paginationResult
 	const user: User = req.data
 
-	req.posts = await searchPosts(
-		req.params.query,
-		user,
-		JSON.parse(JSON.stringify(paginationResult))
-	)
+	req.posts = await searchPosts(req.params.query, user, JSON.parse(JSON.stringify(paginationResult)))
 	req.users = await searchUsers(req.params.query, user, paginationResult)
 	next()
 }

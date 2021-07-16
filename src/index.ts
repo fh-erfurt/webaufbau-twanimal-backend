@@ -1,15 +1,15 @@
 /** Import core libraries for REST-Server */
-import express from "express"
-import http from "http"
-import https from "https"
-import cookieParser from "cookie-parser"
-import fs from "fs"
-import path from "path"
-import { glob } from "glob"
-import cors from "cors"
+import express from 'express'
+import http from 'http'
+import https from 'https'
+import cookieParser from 'cookie-parser'
+import fs from 'fs'
+import path from 'path'
+import { glob } from 'glob'
+import cors from 'cors'
 
-import config from "./config"
-import { initialize } from "./services/databaseService"
+import config from './config'
+import { initialize } from './services/databaseService'
 
 /** Intializing express */
 const app = express()
@@ -37,7 +37,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(express.static(`${__dirname}/../public`))
 
 /** Importing all routes from /routes */
-glob.sync("./dist/routes/**/*.js").forEach((file) => {
+glob.sync('./dist/routes/**/*.js').forEach((file) => {
 	const route = require(path.resolve(file))
 	app.use(route)
 })
@@ -49,4 +49,4 @@ initialize()
 			console.log(`Server running on port ${config.port}`)
 		})
 	})
-	.catch((error) => console.log("Failed connecting to database", error))
+	.catch((error) => console.log('Failed connecting to database', error))

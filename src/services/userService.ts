@@ -135,12 +135,7 @@ function exportUserPrepared(
  * Creates a user for database and validates if
  * email and username are not in use
  *  */
-async function registerUser(
-	email: string,
-	username: string,
-	displayName: string,
-	password: string,
-): Promise<User> {
+async function registerUser(email: string, username: string, displayName: string, password: string): Promise<User> {
 	const existingEmail = await prisma.user.findFirst({
 		where: {
 			email: email,
@@ -674,18 +669,13 @@ async function getUserSuggestionsMiddleware(req, res, next) {
 export {
 	exportUser,
 	exportUserPrepared,
-	registerUser,
 	registerUserMiddleware,
-	loginUser,
 	loginUserMiddleware,
 	authenticateMiddleware,
 	getAuthenticatedUserMiddleware,
-	getUser,
 	getUserMiddleware,
-	followUnfollowUser,
 	followUserMiddleware,
 	unfollowUserMiddleware,
-	updateUser,
 	updateUserMiddleware,
 	getUserSuggestionsMiddleware,
 }

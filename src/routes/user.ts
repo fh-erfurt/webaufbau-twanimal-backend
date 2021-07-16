@@ -65,7 +65,7 @@ router.all('/validate-session', userService.authenticateMiddleware, async (req, 
 /**
  * Updates user based on post body parameters
  * with required authentication
- * 
+ *
  * @returns UserExport with APIToken
  */
 router.post(
@@ -84,16 +84,16 @@ router.post(
 
 /**
  * Get user by id with optional authentication
- * 
+ *
  * @returns UserExport
  */
 router.all('/user/:id', userService.getAuthenticatedUserMiddleware, userService.getUserMiddleware, async (req, res) =>
 	res.json(await userService.exportUser(req.data, false, req.user))
 )
 
-/** 
+/**
  * Follows user with id with required authentication
- * 
+ *
  * @returns UserExport
  */
 router.post(
@@ -104,9 +104,9 @@ router.post(
 	async (req, res) => res.json(await userService.exportUser(req.data, false, req.user))
 )
 
-/** 
+/**
  * Unfollows user with id with required authentication
- * 
+ *
  * @returns UserExport
  */
 router.post(
@@ -119,9 +119,9 @@ router.post(
 
 /**
  * Get all posts from user with id with optional authentication
- * 
+ *
  * @returns PaginationResult<PostExport>
- * 
+ *
  */
 router.all(
 	'/user/:id/posts',
@@ -133,11 +133,11 @@ router.all(
 )
 
 /**
- * Get all posts from users which the authenticated 
+ * Get all posts from users which the authenticated
  * user (required) follows
- * 
+ *
  * @returns PaginationResult<PostExport>
- * 
+ *
  */
 router.all(
 	'/home-timeline',
@@ -148,11 +148,11 @@ router.all(
 )
 
 /**
- * Get follow suggestions from authenticated 
+ * Get follow suggestions from authenticated
  * user (required) which user does not follow yet
- * 
+ *
  * @returns PaginationResult<UserExport>
- * 
+ *
  */
 router.all(
 	'/suggestions',

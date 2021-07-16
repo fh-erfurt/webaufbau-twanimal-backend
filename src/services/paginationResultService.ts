@@ -1,44 +1,41 @@
 interface PaginationResult {
-    limit: number
-    page: number
-    total?: number
-    moreAvailable?: boolean
-    results?: any[]
+	limit: number
+	page: number
+	total?: number
+	moreAvailable?: boolean
+	results?: any[]
 }
 
 /**
  * Parses query parameters from request and initializes
  * pagination result for other middleware functions
  * based on inputs or default parameters
- * 
- * @param defaultLimit 
+ *
+ * @param defaultLimit
  * @param maximumLimit
  */
 function parsePaginationResultMiddleware(defaultLimit: number = 20, maximumLimit: number = 50) {
-    return (req, res, next) => {
-        let limit = parseInt(req.query.limit) || defaultLimit
-        const page = parseInt(req.query.page) || 0
+	return (req, res, next) => {
+		let limit = parseInt(req.query.limit) || defaultLimit
+		const page = parseInt(req.query.page) || 0
 
-        if(limit < 0)
-            return res.status(500).json({
-                error: "limit cannot be less than 0"
-            })
+		if (limit < 0)
+			return res.status(500).json({
+				error: 'limit cannot be less than 0',
+			})
 
-        if(limit > maximumLimit)
-            limit = maximumLimit
+		if (limit > maximumLimit) limit = maximumLimit
 
-        const paginationResult: PaginationResult = {
-            limit: limit,
-            page: page
-        }
+		const paginationResult: PaginationResult = {
+			limit: limit,
+			page: page,
+		}
 
-        req.paginationResult = paginationResult
-        next()
-    }
+		req.paginationResult = paginationResult
+		next()
+	}
 }
 
-export {
-    parsePaginationResultMiddleware
-}
+export { parsePaginationResultMiddleware }
 
 export type { PaginationResult }
